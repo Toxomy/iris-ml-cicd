@@ -14,35 +14,21 @@ pipeline {
             }
         }
         
-        stage('Install Dependencies') {
+        stage('Build Docker Image with Tests') {
             steps {
-                echo 'Installing Python dependencies...'
-                sh '''
-                    python3 -m pip install --user -r requirements.txt
-                '''
-            }
-        }
-        
-        stage('Run Unit Tests') {
-            steps {
-                echo 'Running unit tests...'
-                sh '''
-                    python3 -m pytest test_app.py -v --junitxml=test-results.xml
-                '''
-            }
-            post {
-                always {
-                    junit 'test-results.xml'
-                }
-            }
-        }
-        
-        stage('Build Docker Image') {
-            steps {
-                echo 'Building Docker image...'
+                echo 'Building Docker image (tests run during build)...'
                 sh """
                     docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                     docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                """
+            }
+        }
+        
+        stage('Run Container Test') {
+            steps {
+                echo 'Testing container...'
+                sh """
+                    docker run --rm ${DOCKER_IMAGE}:latest
                 """
             }
         }
@@ -59,14 +45,13 @@ pipeline {
     
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Pipeline completed successfully! ✅'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo 'Pipeline failed! ❌'
         }
         always {
             echo 'Pipeline finished.'
         }
     }
 }
-

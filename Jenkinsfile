@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'iris-ml-app'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')
     }
     
     stages {
@@ -29,6 +30,20 @@ pipeline {
                 echo 'Testing container...'
                 sh """
                     docker run --rm ${DOCKER_IMAGE}:latest
+                """
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                echo 'Pushing to Docker Hub...'
+                sh """
+                    echo \$DOCKER_HUB_CREDENTIALS_PSW | docker login -u \$DOCKER_HUB_CREDENTIALS_USR --password-stdin
+                    docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} \$DOCKER_HUB_CREDENTIALS_USR/${DOCKER_IMAGE}:${DOCKER_TAG}
+                    docker tag ${DOCKER_IMAGE}:latest \$DOCKER_HUB_CREDENTIALS_USR/${DOCKER_IMAGE}:latest
+                    docker push \$DOCKER_HUB_CREDENTIALS_USR/${DOCKER_IMAGE}:${DOCKER_TAG}
+                    docker push \$DOCKER_HUB_CREDENTIALS_USR/${DOCKER_IMAGE}:latest
+                    docker logout
                 """
             }
         }
